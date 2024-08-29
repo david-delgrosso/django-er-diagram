@@ -1,2 +1,1 @@
-def example_function():
-    return 1 + 1
+__version__ = "1.0.0"

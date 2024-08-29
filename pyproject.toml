@@ -1,28 +1,60 @@
-[project]
+[tool.poetry]
 name = "django-er-diagram"
-version = "0.1"
-description = "Auto-generate Entity-Relationship diagrams for a Django project using Mermaid"
+version = "1.0.0"
+description = "Auto-generate Entity-Relationship Diagrams for a Django project using Mermaid"
+authors = ["David Del Grosso <daviddelgrosso97@gmail.com>"]
+license = "MIT License"
 readme = "README.md"
-requires-python = ">=3.8"
-authors = [{name = "David Del Grosso"}]
-license = {text = "Apache-2.0"}
-classifiers = [
-    "License :: OSI Approved :: Apache Software License"
+packages = [
+    { include = "django-er-diagram" }
 ]
-dependencies = [
 
-]
+[tool.poetry.dependencies]
+python = "^3.9"
+django = "^4.2"
+pylint-django = "^2.5.5"
+pytest = "^8.3.2"
+
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.8.0"
+black = "^24.8.0"
+isort = "^5.13.2"
+pylint = "^3.2.6"
 
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
-[project.urls]
-Homepage = "https://github.com/david-delgrosso/django-er-diagram"
-Changelog = "https://github.com/david-delgrosso/django-er-diagram/releases"
-Issues = "https://github.com/david-delgrosso/django-er-diagram/issues"
-CI = "https://github.com/david-delgrosso/django-er-diagram/actions"
+[tool.black]
+line-length = 88
+target-version = ["py38", "py39", "py310"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
 
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["django-er-diagram"]
+known_third_party = ["django"]
+known_standard_library = ["os", "sys"]
+skip = ["migrations"]
 
-[project.optional-dependencies]
-test = ["pytest"]
+# Pylint configuration can be set here or in .pylintrc
+[tool.pylint.main]
+load-plugins = ["pylint_django"]
+fail-under = 8.0
+persistent = true
