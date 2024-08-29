@@ -6,7 +6,7 @@ authors = ["David Del Grosso <daviddelgrosso97@gmail.com>"]
 license = "MIT License"
 readme = "README.md"
 packages = [
-    { include = "django-er-diagram" }
+    { include = "django_er_diagram" }
 ]
 
 [tool.poetry.dependencies]
