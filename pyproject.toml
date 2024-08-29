@@ -1,6 +1,28 @@
 [project]
-name = "placeholder"
+name = "django-er-diagram"
 version = "0.1"
+description = "Auto-generate Entity-Relationship diagrams for a Django project using Mermaid"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{name = "David Del Grosso"}]
+license = {text = "Apache-2.0"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License"
+]
+dependencies = [
+
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/david-delgrosso/django-er-diagram"
+Changelog = "https://github.com/david-delgrosso/django-er-diagram/releases"
+Issues = "https://github.com/david-delgrosso/django-er-diagram/issues"
+CI = "https://github.com/david-delgrosso/django-er-diagram/actions"
+
 
 [project.optional-dependencies]
 test = ["pytest"]
