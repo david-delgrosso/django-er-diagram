@@ -10,10 +10,10 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-django = "^4.2"
-pylint-django = "^2.5.5"
-pytest = "^8.3.2"
+python = ">=3.9"
+django = ">=4.2"
+pylint-django = ">=2.5.5"
+pytest = ">=8.3.2"
 
 
 [tool.poetry.group.dev.dependencies]
