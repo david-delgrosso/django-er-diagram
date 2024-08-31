@@ -122,14 +122,20 @@ class Command(BaseCommand):
 
                 if reverse_key in relation_tree[tree_key]:
                     relation_tree[tree_key][reverse_key]["from_zero"] = (
-                        field.blank or field.null
+                        hasattr(field, "blank")
+                        and field.blank
+                        or hasattr(field, "null")
+                        and field.null
                     )
                 elif key not in relation_tree[tree_key]:
                     relation_tree[tree_key][key] = {
                         "from": model_name,
                         "from_zero": False,
                         "to": related_model_name,
-                        "to_zero": field.blank or field.null,
+                        "to_zero": hasattr(field, "blank")
+                        and field.blank
+                        or hasattr(field, "null")
+                        and field.null,
                     }
 
         self.model_fields = model_fields
