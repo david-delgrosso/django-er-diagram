@@ -4,6 +4,7 @@ import sys
 import site
 from django.apps import apps
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Field, ForeignKey
 from django.template.loader import render_to_string
@@ -94,10 +95,18 @@ class Command(BaseCommand):
             fields = model._meta.get_fields()
             model_fields[model_name] = []
             for field in fields:
+                if hasattr(field, "get_internal_type"):
+                    field_type = field.get_internal_type()
+                elif isinstance(field, GenericForeignKey):
+                    field_type = "GenericForeignKey"
+                else:
+                    print(f"Field {field.name} on model {model_name} not recognized")
+                    continue
+
                 model_fields[model_name].append(
                     {
                         "name": field.name,
-                        "type": field.get_internal_type(),
+                        "type": field_type,
                         "is_relation": field.is_relation,
                         "is_primary_key": isinstance(field, Field)
                         and field.primary_key,
@@ -115,7 +124,7 @@ class Command(BaseCommand):
                     tree_key = "one_to_one"
                 elif field.many_to_many:
                     tree_key = "many_to_many"
-                elif isinstance(field, ForeignKey):
+                elif isinstance(field, (ForeignKey, GenericForeignKey)):
                     tree_key = "one_to_many"
                 else:
                     continue
