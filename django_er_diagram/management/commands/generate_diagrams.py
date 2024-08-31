@@ -3,22 +3,61 @@ import os
 import site
 from django.apps import apps
 from django.conf import settings
-from django.core.management.base import BaseCommand
-from django.db.models import ForeignKey
+from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Field, ForeignKey
 from django.template.loader import render_to_string
 from pathlib import Path
+
+from django_er_diagram import settings as local_settings
 
 
 class Command(BaseCommand):
     help = "Generate Mermaid ER diagrams for Django models"
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--only-apps",
+            nargs="*",
+            default=local_settings.DJANGO_ER_DIAGRAM_ONLY_APPS,
+            help="Only create diagrams for these apps",
+        )
+        parser.add_argument(
+            "--ignore-apps",
+            nargs="*",
+            default=local_settings.DJANGO_ER_DIAGRAM_IGNORE_APPS,
+            help="Create diagrams for all apps except for these",
+        )
+
     def handle(self, *args, **kwargs):
+        # Initializations
+        self.model_fields = {}
+        self.relation_tree = {}
+        self.sorted_model_fields = {}
+
+        only_apps = kwargs.get("only_apps")
+        ignore_apps = kwargs.get("ignore_apps")
+
+        overlap_apps = [temp_app for temp_app in only_apps if temp_app in ignore_apps]
+        if overlap_apps:
+            raise CommandError(
+                f"The following apps cannot be selected and ignored at the same time: {*overlap_apps,}"
+            )
+
         base_dir = Path(settings.BASE_DIR).resolve()
         site_packages_paths = [Path(sp).resolve() for sp in site.getsitepackages()]
 
         # Loop through all installed apps in the root project directory
         for app_config in apps.get_app_configs():
-            # check if app is in root project directory
+            # Check that app is in the user specified set
+            if (
+                only_apps
+                and app_config.label not in only_apps
+                or ignore_apps
+                and app_config.label in ignore_apps
+            ):
+                continue
+
+            # Check if app is in root project directory
             app_directory = Path(app_config.path).resolve()
             if not base_dir in app_directory.parents or any(
                 sp in app_directory.parents for sp in site_packages_paths
@@ -48,59 +87,71 @@ class Command(BaseCommand):
 
     def generate_relation_tree(self, models):
         model_fields = {}
-        relation_tree = {"many_to_many": [], "one_to_many": [], "one_to_one": []}
+        relation_tree = {"many_to_many": {}, "one_to_many": {}, "one_to_one": {}}
         for model in models:
             model_name = model.__name__
             fields = model._meta.get_fields()
             model_fields[model_name] = []
             for field in fields:
                 model_fields[model_name].append(
-                    {"name": field.name, "type": field.get_internal_type()}
+                    {
+                        "name": field.name,
+                        "type": field.get_internal_type(),
+                        "is_relation": field.is_relation,
+                        "is_primary_key": isinstance(field, Field)
+                        and field.primary_key,
+                    }
                 )
 
                 if not field.is_relation:
                     continue
 
                 related_model_name = field.related_model.__name__
+                key = f"{model_name}_to_{related_model_name}"
+                reverse_key = f"{related_model_name}_to_{model_name}"
 
                 if field.one_to_one:
-                    reverse = {"to": model_name, "from": related_model_name}
-                    if reverse not in relation_tree["one_to_one"]:
-                        relation_tree["one_to_one"].append(
-                            {"from": model_name, "to": related_model_name}
-                        )
+                    tree_key = "one_to_one"
+                elif field.many_to_many:
+                    tree_key = "many_to_many"
+                elif isinstance(field, ForeignKey):
+                    tree_key = "one_to_many"
+                else:
+                    continue
 
-                if field.many_to_many:
-                    reverse = {"to": model_name, "from": related_model_name}
-                    if reverse not in relation_tree["many_to_many"]:
-                        relation_tree["many_to_many"].append(
-                            {"from": model_name, "to": related_model_name}
-                        )
-
-                if isinstance(field, ForeignKey):
-                    relation_tree["one_to_many"].append(
-                        {"from": related_model_name, "to": model_name}
+                if reverse_key in relation_tree[tree_key]:
+                    relation_tree[tree_key][reverse_key]["from_zero"] = (
+                        field.blank or field.null
                     )
+                elif key not in relation_tree[tree_key]:
+                    relation_tree[tree_key][key] = {
+                        "from": model_name,
+                        "from_zero": False,
+                        "to": related_model_name,
+                        "to_zero": field.blank or field.null,
+                    }
 
         self.model_fields = model_fields
         self.relation_tree = relation_tree
 
     def sort_fields(self):
-        pass
+        self.sorted_model_fields = {}
+        for model_name, model_fields in self.model_fields.items():
+            self.sorted_model_fields[model_name] = sorted(
+                model_fields,
+                key=lambda field: (
+                    not field["is_primary_key"],
+                    not field["is_relation"],
+                    field["name"],
+                ),
+            )
 
     def generate_mermaid(self):
         """Generate Mermaid ER diagram syntax for given models."""
         mermaid_lines = ["erDiagram"]
-        for model_name, model_fields in self.model_fields.items():
+        for model_name, model_fields in self.sorted_model_fields.items():
             field_lines = []
             for field in model_fields:
-                # if field.many_to_one or field.one_to_one:
-                #     relation = f"{model_name} ||--o| {field.related_model.__name__} : related to"
-                #     mermaid.append(relation)
-                # elif field.one_to_many or field.many_to_many:
-                #     relation = f"{model_name} ||--o{{ {field.related_model.__name__} : related to"
-                #     mermaid.append(relation)
-                # else:
                 field_name = field["name"]
                 field_type = field["type"]
                 field_lines.append(f"        {field_name} {field_type}")
@@ -109,29 +160,39 @@ class Command(BaseCommand):
             mermaid_lines.extend(field_lines)
             mermaid_lines.append("    }")
 
-        one = "||"
-        from_many = "}|"
-        to_many = "|{"
-
         for relation_type, relations in self.relation_tree.items():
-            for relation in relations:
-                from_model = relation["from"]
-                to_model = relation["to"]
-                match relation_type:
-                    case "many_to_many":
-                        mermaid_line = (
-                            f"{from_model} {from_many}--{to_many} {to_model} : has"
-                        )
-                    case "one_to_one":
-                        mermaid_line = f"{from_model} {one}--{one} {to_model} : has"
-                    case "one_to_many":
-                        mermaid_line = f"{from_model} {one}--{to_many} {to_model} : has"
-                    case _:
-                        continue
-
-                mermaid_lines.append("    " + mermaid_line)
+            for relation_data in relations.values():
+                mermaid_line = self.generate_mermaid_line(
+                    relation_type=relation_type, relation_data=relation_data
+                )
+                mermaid_lines.append(mermaid_line)
 
         return "\n".join(mermaid_lines)
+
+    def generate_mermaid_line(
+        self, relation_type: str, relation_data: dict, indent: int = 4
+    ) -> str:
+        """Generate a single line of Mermaid relation syntax
+
+        Args:
+            relation_type (str): type of relation i.e. one-to-many
+
+        Returns:
+            str: string representing one line of Mermaid syntax
+        """
+        from_model = relation_data["from"]
+        from_zero = relation_data["from_zero"]
+        to_model = relation_data["to"]
+        to_zero = relation_data["to_zero"]
+
+        SYNTAX_DICT = {
+            "many_to_many": {"from": "}", "to": "{"},
+            "one_to_one": {"from": "|", "to": "|"},
+            "one_to_many": {"from": "|", "to": "{"},
+        }
+        left = SYNTAX_DICT[relation_type]["from"] + ("o" if from_zero else "|")
+        right = ("o" if to_zero else "|") + SYNTAX_DICT[relation_type]["to"]
+        return " " * indent + f"{from_model} {left}--{right} {to_model} : has"
 
     def export_to_md(self, content: str, file_path: str) -> None:
         """Export the Mermaid syntax to an markdown file using a template
