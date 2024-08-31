@@ -1,4 +1,5 @@
 import os
+import sys
 
 import site
 from django.apps import apps
@@ -6,7 +7,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Field, ForeignKey
 from django.template.loader import render_to_string
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 from django_er_diagram import settings as local_settings
 
@@ -208,3 +209,19 @@ class Command(BaseCommand):
 
         with open(file_path, "w") as f:
             f.write(md_content)
+
+    def get_base_dir(self) -> PosixPath:
+        """Get the base directory for the Django project
+        Use the BASE_DIR attribute of the settings module if present.
+        Otherwise use the parent directory of manage.py.
+
+        Args:
+            None
+
+        Returns:
+            PosixPath: base directory of the Django project
+        """
+        if hasattr(settings, "BASE_DIR"):
+            return settings.BASE_DIR
+
+        return Path(sys.argv[0]).resolve().parent
