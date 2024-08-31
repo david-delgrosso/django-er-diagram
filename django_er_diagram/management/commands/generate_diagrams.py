@@ -44,7 +44,7 @@ class Command(BaseCommand):
                 f"The following apps cannot be selected and ignored at the same time: {*overlap_apps,}"
             )
 
-        base_dir = Path(settings.BASE_DIR).resolve()
+        base_dir = self.get_base_dir()
         site_packages_paths = [Path(sp).resolve() for sp in site.getsitepackages()]
 
         # Loop through all installed apps in the root project directory
