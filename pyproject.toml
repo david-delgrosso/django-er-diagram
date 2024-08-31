@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-er-diagram"
-version = "2.1.0"
+version = "2.2.0"
 description = "Auto-generate Entity-Relationship Diagrams for a Django project using Mermaid"
 authors = ["David Del Grosso <daviddelgrosso97@gmail.com>"]
 license = "MIT License"
@@ -13,7 +13,7 @@ packages = [
 python = ">=3.9"
 django = ">=4.2"
 pylint-django = ">=2.5.5"
-pytest = ">=8.3.2"
+pytest = ">=7.4.4"
 
 
 [tool.poetry.group.dev.dependencies]
