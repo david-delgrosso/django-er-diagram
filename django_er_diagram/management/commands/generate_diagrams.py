@@ -113,7 +113,7 @@ class Command(BaseCommand):
                     }
                 )
 
-                if not field.is_relation:
+                if not field.is_relation or isinstance(field, GenericForeignKey):
                     continue
 
                 related_model_name = field.related_model.__name__
