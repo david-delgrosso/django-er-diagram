@@ -129,9 +129,9 @@ class Command(BaseCommand):
                     )
                 elif key not in relation_tree[tree_key]:
                     relation_tree[tree_key][key] = {
-                        "from": model_name,
+                        "from": related_model_name,
                         "from_zero": False,
-                        "to": related_model_name,
+                        "to": model_name,
                         "to_zero": hasattr(field, "blank")
                         and field.blank
                         or hasattr(field, "null")
