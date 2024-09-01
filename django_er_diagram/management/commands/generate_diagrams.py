@@ -290,7 +290,7 @@ class Command(BaseCommand):
         with open(file_path, "w") as f:
             f.write(html_content)
 
-        self.app_files.append((app_name, f"{app_name}/docs/erd.html"))
+        self.app_files.append((app_name, file_path))
 
     def get_base_dir(self) -> PosixPath:
         """Get the base directory for the Django project
