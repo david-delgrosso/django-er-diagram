@@ -6,15 +6,17 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import Field, ForeignKey
+from django.db.models import Field, ForeignKey, Model
 from django.template.loader import render_to_string
 from pathlib import Path, PosixPath
+from typing import Iterator
 
 from django_er_diagram import settings as local_settings
 
 
 class Command(BaseCommand):
-    help = "Generate Mermaid ER diagrams for Django models"
+    help = "Generate Mermaid Entity-Relationship Diagrams for Django models"
+    output_options = ["md", "html"]
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -29,22 +31,37 @@ class Command(BaseCommand):
             default=local_settings.DJANGO_ER_DIAGRAM_IGNORE_APPS,
             help="Create diagrams for all apps except for these",
         )
+        parser.add_argument(
+            "--output",
+            default=local_settings.DJANGO_ER_DIAGRAM_OUTPUT_FORMAT,
+            help="Output format",
+        )
 
     def handle(self, *args, **kwargs):
         # Initializations
         self.model_fields = {}
         self.relation_tree = {}
         self.sorted_model_fields = {}
+        self.app_files = []
 
         only_apps = kwargs.get("only_apps")
         ignore_apps = kwargs.get("ignore_apps")
+        output = kwargs.get("output")
+        output_dir = local_settings.DJANGO_ER_DIAGRAM_OUTPUT_DIRECTORY
 
+        # Validations
         overlap_apps = [temp_app for temp_app in only_apps if temp_app in ignore_apps]
         if overlap_apps:
             raise CommandError(
                 f"The following apps cannot be selected and ignored at the same time: {*overlap_apps,}"
             )
 
+        if output not in self.output_options:
+            raise CommandError(
+                f"The following output format is not supported: {output}"
+            )
+
+        # Main logic begins here
         base_dir = self.get_base_dir()
         site_packages_paths = [Path(sp).resolve() for sp in site.getsitepackages()]
 
@@ -73,21 +90,42 @@ class Command(BaseCommand):
             # Generate Mermaid diagram syntax for each model
             self.generate_relation_tree(models)
             self.sort_fields()
-            content = self.generate_mermaid()
+            mermaid_code = self.generate_mermaid()
 
             # Create docs directory in the app if it doesn't exist
-            docs_dir = os.path.join(app_config.path, "docs")
-            os.makedirs(docs_dir, exist_ok=True)
+            output_path = os.path.join(app_config.path, output_dir)
+            os.makedirs(output_path, exist_ok=True)
 
-            # Export Mermaid diagram to a markdown file
-            file_path = os.path.join(docs_dir, "er_diagram.md")
-            self.export_to_md(content=content, file_path=file_path)
-
-            self.stdout.write(
-                self.style.SUCCESS(f"Generated ER diagram for app '{app_config.name}'")
+            # Export Mermaid diagram to output file
+            file_path = os.path.join(output_path, f"erd.{output}")
+            export_func = f"export_to_{output}"
+            getattr(self, export_func)(
+                content=mermaid_code, file_path=file_path, app_name=app_config.label
             )
 
-    def generate_relation_tree(self, models):
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Generated Entity-Relationship Diagram for app '{app_config.name}'"
+                )
+            )
+
+        if output == "html":
+            index_file_path = os.path.join(base_dir, "erd_index.html")
+            index_content = render_to_string(
+                "index_template.html", {"app_files": self.app_files}
+            )
+            with open(index_file_path, "w") as f:
+                f.write(index_content)
+
+    def generate_relation_tree(self, models: Iterator[Model]) -> None:
+        """Store model and field data for easier use when writing Mermaid code
+
+        Args:
+            models (Iterator[Model]): iterator of model objects for an app
+
+        Returns:
+            None
+        """
         model_fields = {}
         relation_tree = {"many_to_many": {}, "one_to_many": {}, "one_to_one": {}}
         for model in models:
@@ -151,6 +189,9 @@ class Command(BaseCommand):
         self.relation_tree = relation_tree
 
     def sort_fields(self):
+        """
+        Sort model fields so they are displyed properly in ERD
+        """
         self.sorted_model_fields = {}
         for model_name, model_fields in self.model_fields.items():
             self.sorted_model_fields[model_name] = sorted(
@@ -162,8 +203,15 @@ class Command(BaseCommand):
                 ),
             )
 
-    def generate_mermaid(self):
-        """Generate Mermaid ER diagram syntax for given models."""
+    def generate_mermaid(self) -> str:
+        """Generate Mermaid ERD syntax for given models
+
+        Args:
+            None
+
+        Returns:
+            str: single string containing generated Mermaid code
+        """
         mermaid_lines = ["erDiagram"]
         for model_name, model_fields in self.sorted_model_fields.items():
             field_lines = []
@@ -210,20 +258,39 @@ class Command(BaseCommand):
         right = ("o" if to_zero else "|") + SYNTAX_DICT[relation_type]["to"]
         return " " * indent + f"{from_model} {left}--{right} {to_model} : has"
 
-    def export_to_md(self, content: str, file_path: str) -> None:
-        """Export the Mermaid syntax to an markdown file using a template
+    def export_to_md(self, content: str, file_path: str, *args, **kwargs) -> None:
+        """Export the Mermaid syntax to a markdown file using a template
 
         Args:
-            content (str): stringified mermaid syntax detailing ER diagram
+            content (str): stringified mermaid syntax detailing ERD
             file_path (str): file path to save the resultant markdown content to
 
         Returns:
             None
         """
-        md_content = render_to_string("er_diagram_template.md", {"content": content})
+        md_content = render_to_string("erd_template.md", {"content": content})
 
         with open(file_path, "w") as f:
             f.write(md_content)
+
+    def export_to_html(self, content: str, file_path: str, app_name: str) -> None:
+        """Export the Mermaid syntax to htm
+
+        Args:
+            content (str): stringified mermaid syntax detailing ERD
+            file_path (str): file path to save the resultant html content to
+
+        Returns:
+            None
+        """
+        html_content = render_to_string(
+            "erd_template.html", {"content": content, "app_name": app_name}
+        )
+
+        with open(file_path, "w") as f:
+            f.write(html_content)
+
+        self.app_files.append((app_name, f"{app_name}/docs/erd.html"))
 
     def get_base_dir(self) -> PosixPath:
         """Get the base directory for the Django project

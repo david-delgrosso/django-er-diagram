@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ERD Index</title>
+</head>
+<body>
+    <h1>Entity-Relationship Diagram Index</h1>
+    <ul>
+        {% for app_name, file_path in app_files %}
+            <li><a href="{{ file_path }}">{{ app_name }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

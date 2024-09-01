@@ -1,9 +1,6 @@
 # django-er-diagram
 
 [![PyPI](https://img.shields.io/pypi/v/django-er-diagram.svg)](https://pypi.org/project/django-er-diagram/)
-[![Tests](https://github.com/david-delgrosso/django-er-diagram/actions/workflows/test.yml/badge.svg)](https://github.com/david-delgrosso/django-er-diagram/actions/workflows/test.yml)
-[![Changelog](https://img.shields.io/github/v/release/david-delgrosso/django-er-diagram?include_prereleases&label=changelog)](https://github.com/david-delgrosso/django-er-diagram/releases)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/david-delgrosso/django-er-diagram/blob/main/LICENSE)
 
 Auto-generate Entity-Relationship diagrams for a Django project using Mermaid
 
@@ -14,22 +11,17 @@ Install this library using `pip`:
 pip install django-er-diagram
 ```
 ## Usage
-
-Usage instructions go here.
-
-## Development
-
-To contribute to this library, first checkout the code. Then create a new virtual environment:
-```bash
-cd django-er-diagram
-python -m venv venv
-source venv/bin/activate
+1. Add `django_er_diagram` to your list of installed apps.
+2. Optionally enter your user settings in `settings.py`
+```python
+DJANGO_ER_DIAGRAM_ONLY_APPS = ... # List of apps to generate diagrams for
+DJANGO_ER_DIAGRAM_IGNORE_APPS = ... # List of apps to ignore generating diagrams for
+DJANGO_ER_DIAGRAM_OUTPUT_FORMAT = ... # Output format, options are "md" and "html"
+DJANGO_ER_DIAGRAM_OUTPUT_DIRECTORY = ... # Output directory name
 ```
-Now install the dependencies and test dependencies:
+3. Navigate to the root directory of the project and run the command
 ```bash
-python -m pip install -e '.[test]'
+python3 manage.py generate_diagrams
 ```
-To run the tests:
-```bash
-python -m pytest
-```
+along with any command arguments you'd like to specify.
+4. The Entity-Relationship Diagrams for each specified app will be generated in the specified output format and saved to the specified destination directory. For the `html` format, an `erd_index.html` file will be created in the project's root directory. That file can be used to navigate through the various app diagrams.

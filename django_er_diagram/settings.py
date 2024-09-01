@@ -2,3 +2,9 @@ from django.conf import settings
 
 DJANGO_ER_DIAGRAM_ONLY_APPS = getattr(settings, "DJANGO_ER_DIAGRAM_ONLY_APPS", [])
 DJANGO_ER_DIAGRAM_IGNORE_APPS = getattr(settings, "DJANGO_ER_DIAGRAM_IGNORE_APPS", [])
+DJANGO_ER_DIAGRAM_OUTPUT_FORMAT = getattr(
+    settings, "DJANGO_ER_DIAGRAM_OUTPUT_FORMAT", "html"
+)
+DJANGO_ER_DIAGRAM_OUTPUT_DIRECTORY = getattr(
+    settings, "DJANGO_ER_DIAGRAM_OUTPUT_DIRECTORY", "docs"
+)
