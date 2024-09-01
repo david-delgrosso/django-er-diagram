@@ -111,8 +111,10 @@ class Command(BaseCommand):
 
         if output == "html":
             index_file_path = os.path.join(base_dir, "erd_index.html")
+            sorted_app_files = sorted(self.app_files, key=lambda x: x[0])
             index_content = render_to_string(
-                "index_template.html", {"app_files": self.app_files}
+                "index_template.html",
+                {"app_files": sorted_app_files},
             )
             with open(index_file_path, "w") as f:
                 f.write(index_content)
