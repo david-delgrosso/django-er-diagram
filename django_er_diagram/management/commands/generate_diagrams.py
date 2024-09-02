@@ -13,10 +13,24 @@ from typing import Iterator
 
 from django_er_diagram import settings as local_settings
 
+SYNTAX_DICT = {
+    "many_to_many": {"from": "}", "to": "{"},
+    "one_to_one": {"from": "|", "to": "|"},
+    "one_to_many": {"from": "|", "to": "{"},
+}
+
 
 class Command(BaseCommand):
     help = "Generate Mermaid Entity-Relationship Diagrams for Django models"
     output_options = ["md", "html"]
+    index_filenam = "erd_index.html"
+
+    def __init__(self):
+        self.model_fields = {}
+        self.relation_tree = {}
+        self.sorted_model_fields = {}
+        self.app_files = []
+        self.output_dir = local_settings.DJANGO_ER_DIAGRAM_OUTPUT_DIRECTORY
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -38,17 +52,10 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **kwargs):
-        # Initializations
-        self.model_fields = {}
-        self.relation_tree = {}
-        self.sorted_model_fields = {}
-        self.app_files = []
-
-        only_apps = kwargs.get("only_apps")
-        ignore_apps = kwargs.get("ignore_apps")
+        # Handle input arguments
+        only_apps = [app_name.lower() for app_name in kwargs.get("only_apps", [])]
+        ignore_apps = [app_name.lower() for app_name in kwargs.get("ignore_apps", [])]
         output = kwargs.get("output")
-        output_dir = local_settings.DJANGO_ER_DIAGRAM_OUTPUT_DIRECTORY
-        self.index_filename = "erd_index.html"
 
         # Validations
         overlap_apps = [temp_app for temp_app in only_apps if temp_app in ignore_apps]
@@ -70,11 +77,8 @@ class Command(BaseCommand):
         # Loop through all installed apps in the root project directory
         for app_config in apps.get_app_configs():
             # Check that app is in the user specified set
-            if (
-                only_apps
-                and app_config.label not in only_apps
-                or ignore_apps
-                and app_config.label in ignore_apps
+            if (only_apps and app_config.label not in only_apps) or (
+                ignore_apps and app_config.label in ignore_apps
             ):
                 continue
 
@@ -95,7 +99,7 @@ class Command(BaseCommand):
             mermaid_code = self.generate_mermaid()
 
             # Create docs directory in the app if it doesn't exist
-            output_path = os.path.join(app_config.path, output_dir)
+            output_path = os.path.join(app_config.path, self.output_dir)
             os.makedirs(output_path, exist_ok=True)
 
             # Export Mermaid diagram to output file
@@ -111,6 +115,7 @@ class Command(BaseCommand):
                 )
             )
 
+        # For html output format, create index static page as directory for app diagrams
         if output == "html":
             index_file_path = os.path.join(self.base_dir, self.index_filename)
             sorted_app_files = sorted(self.app_files, key=lambda x: x[0])
@@ -166,27 +171,22 @@ class Command(BaseCommand):
                     tree_key = "one_to_one"
                 elif field.many_to_many:
                     tree_key = "many_to_many"
-                elif isinstance(field, (ForeignKey, GenericForeignKey)):
+                elif isinstance(field, ForeignKey):
                     tree_key = "one_to_many"
                 else:
                     continue
 
                 if reverse_key in relation_tree[tree_key]:
-                    relation_tree[tree_key][reverse_key]["from_zero"] = (
-                        hasattr(field, "blank")
-                        and field.blank
-                        or hasattr(field, "null")
-                        and field.null
-                    )
+                    relation_tree[tree_key][reverse_key]["from_zero"] = getattr(
+                        field, "blank", False
+                    ) or getattr(field, "null", False)
                 elif key not in relation_tree[tree_key]:
                     relation_tree[tree_key][key] = {
                         "from": related_model_name,
                         "from_zero": False,
                         "to": model_name,
-                        "to_zero": hasattr(field, "blank")
-                        and field.blank
-                        or hasattr(field, "null")
-                        and field.null,
+                        "to_zero": getattr(field, "blank", False)
+                        or getattr(field, "null", False),
                     }
 
         self.model_fields = model_fields
@@ -195,6 +195,7 @@ class Command(BaseCommand):
     def sort_fields(self):
         """
         Sort model fields so they are displyed properly in ERD
+        List primary key first, then relations, then attributes
         """
         self.sorted_model_fields = {}
         for model_name, model_fields in self.model_fields.items():
@@ -253,11 +254,6 @@ class Command(BaseCommand):
         to_model = relation_data["to"]
         to_zero = relation_data["to_zero"]
 
-        SYNTAX_DICT = {
-            "many_to_many": {"from": "}", "to": "{"},
-            "one_to_one": {"from": "|", "to": "|"},
-            "one_to_many": {"from": "|", "to": "{"},
-        }
         left = SYNTAX_DICT[relation_type]["from"] + ("o" if from_zero else "|")
         right = ("o" if to_zero else "|") + SYNTAX_DICT[relation_type]["to"]
         return " " * indent + f"{from_model} {left}--{right} {to_model} : has"
