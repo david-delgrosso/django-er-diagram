@@ -48,6 +48,7 @@ class Command(BaseCommand):
         ignore_apps = kwargs.get("ignore_apps")
         output = kwargs.get("output")
         output_dir = local_settings.DJANGO_ER_DIAGRAM_OUTPUT_DIRECTORY
+        self.index_filename = "erd_index.html"
 
         # Validations
         overlap_apps = [temp_app for temp_app in only_apps if temp_app in ignore_apps]
@@ -63,6 +64,7 @@ class Command(BaseCommand):
 
         # Main logic begins here
         self.base_dir = self.get_base_dir()
+        project_name = str(self.base_dir).split("/")[-1]
         site_packages_paths = [Path(sp).resolve() for sp in site.getsitepackages()]
 
         # Loop through all installed apps in the root project directory
@@ -110,11 +112,11 @@ class Command(BaseCommand):
             )
 
         if output == "html":
-            index_file_path = os.path.join(self.base_dir, "erd_index.html")
+            index_file_path = os.path.join(self.base_dir, self.index_filename)
             sorted_app_files = sorted(self.app_files, key=lambda x: x[0])
             index_content = render_to_string(
                 "index_template.html",
-                {"app_files": sorted_app_files},
+                {"app_files": sorted_app_files, "project_name": project_name},
             )
             with open(index_file_path, "w") as f:
                 f.write(index_content)
@@ -285,8 +287,10 @@ class Command(BaseCommand):
         Returns:
             None
         """
+        index_path = os.path.join(self.base_dir, self.index_filename)
         html_content = render_to_string(
-            "erd_template.html", {"content": content, "app_name": app_name}
+            "erd_template.html",
+            {"content": content, "app_name": app_name, "index_path": index_path},
         )
 
         with open(file_path, "w") as f:

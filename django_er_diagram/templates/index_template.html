@@ -3,13 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <title>ERD Index</title>
+    <style>
+        /* Dark theme CSS */
+        body {
+            background-color: #1e1e1e;
+            color: #c0c0c0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #61dafb;
+            text-align: center;
+            margin: 20px 0;
+        }
+        h3 {
+            color: #ffffff;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+        }
+        a {
+            color: #61dafb;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <h1>Entity-Relationship Diagram Index</h1>
-    <ul>
-        {% for app_name, file_path in app_files %}
-            <li><a href="{{ file_path }}">{{ app_name }}</a></li>
-        {% endfor %}
-    </ul>
+    <div class="container">
+        <h1>Entity-Relationship Diagram Index</h1>
+        <h3>Project: {{ project_name }}</h5>
+        <ul>
+            {% for app_name, file_path in app_files %}
+                <li><a href="{{ file_path }}">{{ app_name }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
 </body>
 </html>

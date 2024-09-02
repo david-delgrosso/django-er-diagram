@@ -3,16 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <title>ERD - {{ app_name }}</title>
+    <style>
+        /* Dark theme CSS */
+        body {
+            background-color: #1e1e1e;
+            color: #c0c0c0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+        h1 {
+            color: #61dafb;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            padding: 20px;
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+        .mermaid {
+            background-color: #272822;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+        }
+        a {
+            display: block;
+            color: #61dafb;
+            text-decoration: none;
+            text-align: center;
+            margin: 20px auto;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-        mermaid.initialize({ startOnLoad: true, maxTextSize: 100000 });
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            maxTextSize: 100000  // Increase the limit as needed
+        });
     </script>
 </head>
 <body>
-    <h1>Entity-Relationship Diagram for {{ app_name }}</h1>
-    <div class="mermaid">
-        {{ content | safe }}
+    <div class="container">
+        <h1>Entity-Relationship Diagram for {{ app_name }}</h1>
+        <div class="mermaid">
+            {{ content | safe }}
+        </div>
+        <a href="{{ index_path }}">Back to Index</a>
     </div>
-    <a href="index.html">Back to Index</a>
 </body>
 </html>
