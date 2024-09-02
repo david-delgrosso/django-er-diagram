@@ -62,7 +62,7 @@ class Command(BaseCommand):
             )
 
         # Main logic begins here
-        base_dir = self.get_base_dir()
+        self.base_dir = self.get_base_dir()
         site_packages_paths = [Path(sp).resolve() for sp in site.getsitepackages()]
 
         # Loop through all installed apps in the root project directory
@@ -78,7 +78,7 @@ class Command(BaseCommand):
 
             # Check if app is in root project directory
             app_directory = Path(app_config.path).resolve()
-            if not base_dir in app_directory.parents or any(
+            if not self.base_dir in app_directory.parents or any(
                 sp in app_directory.parents for sp in site_packages_paths
             ):
                 continue
@@ -110,7 +110,7 @@ class Command(BaseCommand):
             )
 
         if output == "html":
-            index_file_path = os.path.join(base_dir, "erd_index.html")
+            index_file_path = os.path.join(self.base_dir, "erd_index.html")
             sorted_app_files = sorted(self.app_files, key=lambda x: x[0])
             index_content = render_to_string(
                 "index_template.html",
@@ -292,7 +292,7 @@ class Command(BaseCommand):
         with open(file_path, "w") as f:
             f.write(html_content)
 
-        self.app_files.append((app_name, file_path))
+        self.app_files.append((app_name, file_path[len(str(self.base_dir)) + 1 :]))
 
     def get_base_dir(self) -> PosixPath:
         """Get the base directory for the Django project
