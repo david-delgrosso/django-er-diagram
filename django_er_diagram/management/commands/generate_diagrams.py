@@ -12,27 +12,24 @@ from pathlib import Path, PosixPath
 from typing import Iterator
 
 from django_er_diagram import settings as local_settings
-
-SYNTAX_DICT = {
-    "many_to_many": {"from": "}", "to": "{"},
-    "one_to_one": {"from": "|", "to": "|"},
-    "one_to_many": {"from": "|", "to": "{"},
-}
+from django_er_diagram.constants import (
+    ERD_TEMPLATE_HTML,
+    ERD_TEMPLATE_MD,
+    HTML,
+    INDEX_FILENAME,
+    MANY_TO_MANY,
+    MD,
+    MERMAID_SYNTAX_DICT,
+    ONE_TO_MANY,
+    ONE_TO_ONE,
+)
 
 
 class Command(BaseCommand):
     help = "Generate Mermaid Entity-Relationship Diagrams for Django models"
-    output_options = ["md", "html"]
-    index_filenam = "erd_index.html"
+    output_options = [MD, HTML]
 
-    def __init__(self):
-        self.model_fields = {}
-        self.relation_tree = {}
-        self.sorted_model_fields = {}
-        self.app_files = []
-        self.output_dir = local_settings.DJANGO_ER_DIAGRAM_OUTPUT_DIRECTORY
-
-    def add_arguments(self, parser):
+    def add_arguments(self, parser) -> None:
         parser.add_argument(
             "--only-apps",
             nargs="*",
@@ -51,10 +48,25 @@ class Command(BaseCommand):
             help="Output format",
         )
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args, **kwargs) -> None:
+        # Initializations
+        self.model_fields = {}
+        self.relation_tree = {}
+        self.sorted_model_fields = {}
+        self.app_files = []
+        self.output_dir = local_settings.DJANGO_ER_DIAGRAM_OUTPUT_DIRECTORY
+
         # Handle input arguments
-        only_apps = [app_name.lower() for app_name in kwargs.get("only_apps", [])]
-        ignore_apps = [app_name.lower() for app_name in kwargs.get("ignore_apps", [])]
+        only_apps_input = kwargs.get("only_apps", [])
+        if isinstance(only_apps_input, str):
+            only_apps_input = [only_apps_input]
+
+        ignore_apps_input = kwargs.get("ignore_apps", [])
+        if isinstance(ignore_apps_input, str):
+            ignore_apps_input = [ignore_apps_input]
+
+        only_apps = [app_name.lower() for app_name in only_apps_input]
+        ignore_apps = [app_name.lower() for app_name in ignore_apps_input]
         output = kwargs.get("output")
 
         # Validations
@@ -71,6 +83,9 @@ class Command(BaseCommand):
 
         # Main logic begins here
         self.base_dir = self.get_base_dir()
+        self.index_file_path = (
+            self.base_dir / INDEX_FILENAME if output == HTML else None
+        )
         project_name = str(self.base_dir).split("/")[-1]
         site_packages_paths = [Path(sp).resolve() for sp in site.getsitepackages()]
 
@@ -99,14 +114,16 @@ class Command(BaseCommand):
             mermaid_code = self.generate_mermaid()
 
             # Create docs directory in the app if it doesn't exist
-            output_path = os.path.join(app_config.path, self.output_dir)
-            os.makedirs(output_path, exist_ok=True)
+            output_path = Path(app_config.path) / self.output_dir
+            output_path.mkdir(parents=True, exist_ok=True)
 
             # Export Mermaid diagram to output file
-            file_path = os.path.join(output_path, f"erd.{output}")
+            file_path = output_path / f"erd.{output}"
             export_func = f"export_to_{output}"
             getattr(self, export_func)(
-                content=mermaid_code, file_path=file_path, app_name=app_config.label
+                content=mermaid_code,
+                file_path=str(file_path),
+                app_name=app_config.label,
             )
 
             self.stdout.write(
@@ -116,14 +133,13 @@ class Command(BaseCommand):
             )
 
         # For html output format, create index static page as directory for app diagrams
-        if output == "html":
-            index_file_path = os.path.join(self.base_dir, self.index_filename)
+        if output == HTML:
             sorted_app_files = sorted(self.app_files, key=lambda x: x[0])
             index_content = render_to_string(
                 "index_template.html",
                 {"app_files": sorted_app_files, "project_name": project_name},
             )
-            with open(index_file_path, "w") as f:
+            with open(self.index_file_path, "w") as f:
                 f.write(index_content)
 
     def generate_relation_tree(self, models: Iterator[Model]) -> None:
@@ -136,7 +152,7 @@ class Command(BaseCommand):
             None
         """
         model_fields = {}
-        relation_tree = {"many_to_many": {}, "one_to_many": {}, "one_to_one": {}}
+        relation_tree = {MANY_TO_MANY: {}, ONE_TO_MANY: {}, ONE_TO_ONE: {}}
         for model in models:
             model_name = model.__name__
             fields = model._meta.get_fields()
@@ -147,7 +163,11 @@ class Command(BaseCommand):
                 elif isinstance(field, GenericForeignKey):
                     field_type = "GenericForeignKey"
                 else:
-                    print(f"Field {field.name} on model {model_name} not recognized")
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"Field {field.name} on model {model_name} has unrecognized type. It has been excluded from the diagram."
+                        )
+                    )
                     continue
 
                 model_fields[model_name].append(
@@ -168,11 +188,11 @@ class Command(BaseCommand):
                 reverse_key = f"{related_model_name}_to_{model_name}"
 
                 if field.one_to_one:
-                    tree_key = "one_to_one"
+                    tree_key = ONE_TO_ONE
                 elif field.many_to_many:
-                    tree_key = "many_to_many"
+                    tree_key = MANY_TO_MANY
                 elif isinstance(field, ForeignKey):
-                    tree_key = "one_to_many"
+                    tree_key = ONE_TO_MANY
                 else:
                     continue
 
@@ -192,7 +212,7 @@ class Command(BaseCommand):
         self.model_fields = model_fields
         self.relation_tree = relation_tree
 
-    def sort_fields(self):
+    def sort_fields(self) -> None:
         """
         Sort model fields so they are displyed properly in ERD
         List primary key first, then relations, then attributes
@@ -254,8 +274,8 @@ class Command(BaseCommand):
         to_model = relation_data["to"]
         to_zero = relation_data["to_zero"]
 
-        left = SYNTAX_DICT[relation_type]["from"] + ("o" if from_zero else "|")
-        right = ("o" if to_zero else "|") + SYNTAX_DICT[relation_type]["to"]
+        left = MERMAID_SYNTAX_DICT[relation_type]["from"] + ("o" if from_zero else "|")
+        right = ("o" if to_zero else "|") + MERMAID_SYNTAX_DICT[relation_type]["to"]
         return " " * indent + f"{from_model} {left}--{right} {to_model} : has"
 
     def export_to_md(self, content: str, file_path: str, *args, **kwargs) -> None:
@@ -268,7 +288,7 @@ class Command(BaseCommand):
         Returns:
             None
         """
-        md_content = render_to_string("erd_template.md", {"content": content})
+        md_content = render_to_string(ERD_TEMPLATE_MD, {"content": content})
 
         with open(file_path, "w") as f:
             f.write(md_content)
@@ -283,10 +303,13 @@ class Command(BaseCommand):
         Returns:
             None
         """
-        index_path = os.path.join(self.base_dir, self.index_filename)
         html_content = render_to_string(
-            "erd_template.html",
-            {"content": content, "app_name": app_name, "index_path": index_path},
+            ERD_TEMPLATE_HTML,
+            {
+                "content": content,
+                "app_name": app_name,
+                "index_path": self.index_file_path,
+            },
         )
 
         with open(file_path, "w") as f:
