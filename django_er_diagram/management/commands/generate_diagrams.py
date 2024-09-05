@@ -45,7 +45,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--output",
             default=local_settings.DJANGO_ER_DIAGRAM_OUTPUT_FORMAT,
-            help="Output format",
+            help=f"Output format, options are: {*self.output_options,}",
         )
 
     def handle(self, *args, **kwargs) -> None:
