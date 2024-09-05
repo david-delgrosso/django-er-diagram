@@ -1,7 +1,9 @@
 import pytest
 import textwrap
+from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.template.loader import render_to_string
 from io import StringIO
 from unittest.mock import patch
 
@@ -74,8 +76,11 @@ class TestGenerateDiagrams:
         # Run the command
         call_command("generate_diagrams", output="html", only_apps="mock_app")
 
-        with open("tests/fixtures/mock_html_output.html", "r") as f:
-            expected_html = f.read().strip()
+        index_path = settings.BASE_DIR / "erd_index.html"
+        expected_html = render_to_string(
+            "mock_html_output.html",
+            {"index_path": str(index_path)},
+        ).strip()
 
         generated_html = mock_file.getvalue().strip()
         assert expected_html == generated_html

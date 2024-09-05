@@ -27,7 +27,7 @@ def django_db_setup():
             TEMPLATES=[
                 {
                     "BACKEND": "django.template.backends.django.DjangoTemplates",
-                    "DIRS": ["django_er_diagram.templates"],
+                    "DIRS": ["django_er_diagram.templates", "tests/fixtures"],
                     "APP_DIRS": True,
                     "OPTIONS": {"context_processors": []},
                 }
