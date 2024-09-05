@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-er-diagram"
-version = "3.2.0"
+version = "3.3.0"
 description = "Auto-generate Entity-Relationship Diagrams for a Django project using Mermaid"
 authors = ["David Del Grosso <daviddelgrosso97@gmail.com>"]
 license = "MIT License"
