@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ERD - mock_app</title>
+    <style>
+        /* Dark theme CSS */
+        body {
+            background-color: #1e1e1e;
+            color: #c0c0c0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+        h1 {
+            color: #61dafb;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            padding: 20px;
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+        .mermaid {
+            background-color: #272822;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+        }
+        a {
+            display: block;
+            color: #61dafb;
+            text-decoration: none;
+            text-align: center;
+            margin: 20px auto;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            maxTextSize: 100000  // Increase the limit as needed
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Entity-Relationship Diagram for mock_app</h1>
+        <div class="mermaid">
+            erDiagram
+    Author {
+        id AutoField
+        book ForeignKey
+        name CharField
+    }
+    Book {
+        id AutoField
+        author ForeignKey
+        reader ManyToManyField
+        review ForeignKey
+        title CharField
+    }
+    Review {
+        id AutoField
+        book ForeignKey
+        grade OneToOneField
+        review_text TextField
+    }
+    Grade {
+        id AutoField
+        review OneToOneField
+        letter CharField
+    }
+    Reader {
+        id AutoField
+        book ManyToManyField
+        name CharField
+    }
+    Reader }|--o{ Book : has
+    Author ||--|{ Book : has
+    Book ||--|{ Review : has
+    Grade ||--o| Review : has
+        </div>
+        <a href="/home/davidm97/django-er-diagram/erd_index.html">Back to Index</a>
+    </div>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ERD Index</title>
+    <style>
+        /* Dark theme CSS */
+        body {
+            background-color: #1e1e1e;
+            color: #c0c0c0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #61dafb;
+            text-align: center;
+            margin: 20px 0;
+        }
+        h3 {
+            color: #ffffff;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+        }
+        a {
+            color: #61dafb;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Entity-Relationship Diagram Index</h1>
+        <h3>Project: django-er-diagram</h5>
+        <ul>
+            
+                <li><a href="tests/mock_app/docs/erd.html">mock_app</a></li>
+            
+        </ul>
+    </div>
+</body>
+</html>
