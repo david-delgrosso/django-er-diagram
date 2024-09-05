@@ -1,10 +1,9 @@
 import pytest
-
-from django.core.management import call_command
-from unittest.mock import patch
-from io import StringIO
 import textwrap
+from django.core.management import call_command
 from django.core.management.base import CommandError
+from io import StringIO
+from unittest.mock import patch
 
 
 @pytest.mark.django_db

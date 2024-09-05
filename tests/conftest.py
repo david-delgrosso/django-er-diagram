@@ -1,9 +1,9 @@
 # conftest.py
 
-import pytest
-from django.conf import settings
-from django.apps import apps, AppConfig
 import django
+import pytest
+from django.apps import AppConfig, apps
+from django.conf import settings
 from pathlib import Path
 
 
